@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"go.mod/handlers"
+	"go.mod/helper"
 )
 
 // Middleware untuk memeriksa token JWT
@@ -15,18 +16,15 @@ func Authenticated(c *fiber.Ctx) error {
 
 	// Periksa jika Authorization header tidak ada
 	if authHeader == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Authorization header missing",
-		})
+		return helper.ResponseBasic(c, 401, "Authorization header missing")
 	}
 
 	// Pecah string menjadi bagian "Bearer" dan token
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid Authorization header format",
-		})
+		return helper.ResponseBasic(c, 401, "Invalid Authorization header format")
 	}
+
 	tokenString := parts[1]
 
 	// Validasi token
@@ -37,22 +35,15 @@ func Authenticated(c *fiber.Ctx) error {
 		}
 		return handlers.SecretKey, nil
 	})
+
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "Unauthorized",
-		})
+		return helper.ResponseBasic(c, fiber.StatusUnauthorized, "Unauthorized")
 	}
 
 	// Periksa apakah token valid
 	if !token.Valid {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "Invalid token",
-		})
+		return helper.ResponseBasic(c, fiber.StatusUnauthorized, "Invalid token")
 	}
 
-	// Simpan token di dalam fiber.Ctx.Locals() untuk digunakan di fungsi controller
-	c.Locals("token", token)
-
-	// Lanjutkan jika token valid dan belum kedaluwarsa
-	return c.Next()
+	return helper.ParseJwtToken(c, token)
 }

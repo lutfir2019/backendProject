@@ -49,5 +49,11 @@ type CreateProductRequest struct {
 type Token struct {
 	Name string
 	Role string
+	Spcd string
 	Exp  time.Time
+}
+
+type LoginRequest struct {
+	Unm  string `json:"unm"`
+	Pass string `json:"pass"`
 }

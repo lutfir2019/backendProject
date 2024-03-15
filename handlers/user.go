@@ -14,20 +14,13 @@ import (
 )
 
 func CreateUser(c *fiber.Ctx) error {
-	// Ambil token dari fiber.Ctx.Locals()
-	token, ok := c.Locals("token").(*jwt.Token)
-	if !ok {
-		return helper.ResponseBasic(c, 400, "Failed to get token from context")
-	}
-
-	// user := c.Locals("token").(structur.Token)
-
-	fmt.Println(token)
-
 	json := new(structur.SliceUserRequest)
 	if err := c.BodyParser(json); err != nil {
 		return helper.ResponsError(c, 400, "Invalid JSON", err)
 	}
+
+	userLocals := c.Locals("user").(jwt.MapClaims)
+	fmt.Println(userLocals["role"])
 
 	// cek apakah toko tersedia
 	db := database.DB
@@ -54,9 +47,9 @@ func CreateUser(c *fiber.Ctx) error {
 		ShopRefer: shop.SID,
 	}
 
-	found := User{}
+	user := User{}
 	query := User{Unm: new.Unm}
-	err = db.First(&found, &query).Error
+	err = db.First(&user, &query).Error
 	if err != gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 400, "User already exists", err)
 	}
@@ -66,7 +59,7 @@ func CreateUser(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 500, "Invalid query database", err)
 	}
 
-	return helper.ResponsSuccess(c, 200, "Success create user", found, 1, 10, 1)
+	return helper.ResponsSuccess(c, 200, "Success create user", new, 1, 10, 1)
 }
 
 func GetUsers(c *fiber.Ctx) error {
@@ -143,6 +136,12 @@ func UpdateUserByUnm(c *fiber.Ctx) error {
 	}
 	if json.Pn != "" {
 		user.Pn = json.Pn
+	}
+	if json.Spcd != "" {
+		user.Spcd = json.Spcd
+	}
+	if json.Spnm != "" {
+		user.Spnm = json.Spnm
 	}
 
 	db.Save(user)

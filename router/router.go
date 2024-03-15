@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/gofiber/fiber/v2"
 	"go.mod/handlers"
+	"go.mod/helper"
 	"go.mod/middleware"
 )
 
@@ -20,6 +21,7 @@ func Initalize(router *fiber.App) {
 	auth.Post("/login", handlers.Login)
 	auth.Delete("/logout", handlers.Logout)
 
+	// users := router.Group("/api/users")
 	users := router.Group("/api/users", middleware.Authenticated)
 	users.Post("/post-user", handlers.CreateUser)
 	users.Post("/post-user/all", handlers.GetUsers)
@@ -32,11 +34,11 @@ func Initalize(router *fiber.App) {
 	products.Post("/post-product", handlers.CreateProduct)
 	products.Post("/post-product/all", handlers.GetProducts)
 	products.Post("/post-product/:pcd", handlers.GetProductByCode)
-	products.Put("/put-product/:pcd", handlers.UpdateProduct)
+	products.Put("/put-product/:pcd", handlers.UpdateProductByCode)
 	products.Delete("/delete-product/:pcd", handlers.DeleteProduct)
 
-	shops := router.Group("/api/shops")
-	// shops := router.Group("/shops", middleware.Authenticated)
+	// shops := router.Group("/api/shops")
+	shops := router.Group("/api/shops", middleware.Authenticated)
 	shops.Post("/post-shop", handlers.CreateShop)
 	shops.Post("/post-shop/all", handlers.GetShops)
 	shops.Post("/post-shop/:scd", handlers.GetShopByCode)
@@ -44,9 +46,7 @@ func Initalize(router *fiber.App) {
 	shops.Delete("/delete-shop/:scd", handlers.DeleteShop)
 
 	router.Use(func(c *fiber.Ctx) error {
-		return c.Status(404).JSON(fiber.Map{
-			"message": "404: Not Found",
-		})
+		return helper.ResponseBasic(c, 404, "404: Not Found")
 	})
 
 }

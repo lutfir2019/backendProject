@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 
 	// guuid "github.com/google/uuid"
 
 	"go.mod/database"
+	"go.mod/handlers/structur"
 	"go.mod/helper"
 	"go.mod/model"
 	"gorm.io/gorm"
@@ -23,12 +26,7 @@ var (
 )
 
 func Login(c *fiber.Ctx) error {
-	type LoginRequest struct {
-		Unm  string `json:"unm"`
-		Pass string `json:"pass"`
-	}
-
-	json := new(LoginRequest)
+	json := new(structur.LoginRequest)
 	if err := c.BodyParser(json); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"message": "Invalid JSON",
@@ -54,6 +52,7 @@ func Login(c *fiber.Ctx) error {
 	claims := jwt.MapClaims{
 		"username": found.Unm,
 		"role":     found.Rlcd,
+		"spcd":     found.Spcd,
 		"exp":      helper.SessionExpires().Unix(),
 	}
 
@@ -66,16 +65,8 @@ func Login(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 400, "Failed to create token", err)
 	}
 
-	// session := Session{
-	// 	UserRefer: found.UID,
-	// 	Expires:   helper.SessionExpires(),
-	// 	Sessionid: guuid.New(),
-	// 	Token:     "Bearer " + t,
-	// }
-
-	// db.Create(&session)
 	c.Cookie(&fiber.Cookie{
-		Name:     "token",
+		Name:     "__t",
 		Expires:  helper.SessionExpires(),
 		Value:    t,
 		HTTPOnly: true,
@@ -84,12 +75,20 @@ func Login(c *fiber.Ctx) error {
 	return c.Status(200).JSON(fiber.Map{
 		"message": "Sucessfully",
 		"token":   t,
+		"data":    found,
 	})
 }
 
 func Logout(c *fiber.Ctx) error {
-	c.ClearCookie("token")
-	return c.Status(200).JSON(fiber.Map{
-		"message": "Logout sucessfully",
+	c.Cookie(&fiber.Cookie{
+		Name:    "__t",
+		Expires: time.Now().Add(-1 * time.Second),
 	})
+	c.Cookie(&fiber.Cookie{
+		Name:    "sessionid",
+		Expires: time.Now().Add(-1 * time.Second),
+	})
+	c.Locals("user", "")
+
+	return helper.ResponseBasic(c, 200, "Logout sucessfully")
 }

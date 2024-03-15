@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"go.mod/database"
 	"go.mod/model"
 	"golang.org/x/crypto/bcrypt"
@@ -26,7 +27,7 @@ func ComparePasswords(hashedPwd string, plainPwd []byte) bool {
 
 // Universal date the Session Will Expire
 func SessionExpires() time.Time {
-	return time.Now().Add(1 * 24 * time.Hour)
+	return time.Now().Add(1 * 60 * time.Minute)
 }
 
 func SetPagination(totalItems int64, limit int, page int) fiber.Map {
@@ -106,4 +107,17 @@ func ResponseBasic(c *fiber.Ctx, status int, msg string) error {
 	return c.Status(status).JSON(fiber.Map{
 		"message": msg,
 	})
+}
+
+func ParseJwtToken(c *fiber.Ctx, token *jwt.Token) error {
+	// Simpan informasi pengguna ke dalam fiber.Ctx.Locals()
+	claims := token.Claims.(jwt.MapClaims)
+	// username := claims["username"].(string)
+	// role := claims["role"].(string)
+	// shopCode := claims["spcd"].(string)
+
+	fmt.Println(claims)
+	c.Locals("user", claims)
+
+	return c.Next()
 }

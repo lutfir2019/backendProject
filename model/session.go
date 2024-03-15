@@ -11,5 +11,5 @@ type Session struct {
 	Expires   time.Time  `json:"-"`
 	UserRefer guuid.UUID `json:"-"`
 	Token     string     `json:"token"` // JWT token for client side to access the session data
-	CreatedAt int64      `gorm:"autoCreateTime" json:"-" `
+	CreatedAt time.Time  `gorm:"autoCreateTime" json:"-" `
 }
