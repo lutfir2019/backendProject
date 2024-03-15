@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"strconv"
-
 	"github.com/gofiber/fiber/v2"
 	guuid "github.com/google/uuid"
 	"go.mod/database"
@@ -13,155 +11,103 @@ import (
 )
 
 func CreateShop(c *fiber.Ctx) error {
-	db := database.DB
 	json := new(structur.SliceShopRequest)
 	if err := c.BodyParser(json); err != nil {
-		return c.JSON(fiber.Map{
-			"code":    400,
-			"message": "Invalid JSON",
-		})
+		return helper.ResponsError(c, 400, "Invalid JSON", err)
 	}
 
 	newShop := Shop{
-		Spnm: json.Spnm,
-		Almt: json.Almt,
 		SID:  guuid.New(), // generate UUID for shop code
+		Spnm: json.Spnm,
 		Spcd: helper.GenerateCode(json.Spnm),
+		Almt: json.Almt,
 	}
 
+	db := database.DB
 	found := Shop{}
 	query := Shop{Spnm: newShop.Spnm}
 	err := db.First(&found, &query).Error
 	if err != gorm.ErrRecordNotFound {
-		return c.JSON(fiber.Map{
-			"code":    400,
-			"message": "Shop already exists",
-		})
+		return helper.ResponsError(c, 400, "Name shop already exists", err)
 	}
 
 	err = db.Create(&newShop).Error
 	if err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		return helper.ResponsError(c, 500, "Invalid query database", err)
 	}
-	return c.JSON(fiber.Map{
-		"code":    200,
-		"message": "Success create shop data",
-	})
+
+	return helper.ResponseBasic(c, 200, "Success create shop data")
+
 }
 
 func GetShops(c *fiber.Ctx) error {
+	json := new(structur.SizeGetDataRequest)
+	if err := c.BodyParser(json); err != nil {
+		return helper.ResponsError(c, 400, "Invalid JSON", err)
+	}
+
+	// Set default value if not set in the request page
+	if json.Page < 1 {
+		json.Page = 1
+	}
+	if json.PageSize < 1 {
+		json.PageSize = 10
+	}
+	offset := (json.Page - 1) * json.PageSize
+
 	db := database.DB
-
-	// Kebutuhan pagination
-	page, err := strconv.Atoi(c.Query("page", "1")) // Ambil nomor halaman dari query parameter, defaultnya 1
-	if err != nil || page < 1 {
-		page = 1
-	}
-
-	limit, err := strconv.Atoi(c.Query("page_size", "10")) // Ambil jumlah item per halaman dari query parameter, defaultnya 10
-	if err != nil || limit < 1 {
-		limit = 10
-	}
-
-	offset := (page - 1) * limit // Hitung offset berdasarkan nomor halaman
-
-	var totalItems int64
 	Shops := []Shop{}
 
 	// Hitung total item (untuk kebutuhan pagination)
-	db.Model(&model.Shop{}).Count(&totalItems)
-
+	db.Model(&model.Shop{}).Count(&TotalItems)
 	// Ambil data toko dengan pagination
-	db.Model(&model.Shop{}).Order("s_id").Offset(offset).Limit(limit).Find(&Shops)
+	db.Model(&model.Shop{}).Order("ID DESC").Order("s_id").Offset(offset).Limit(json.PageSize).Find(&Shops)
 
-	return c.Status(200).JSON(fiber.Map{
-		"message": "Success get shop data",
-		"data": fiber.Map{
-			"data":       Shops,
-			"pagination": helper.SetPagination(totalItems, limit, page),
-		},
-	})
+	return helper.ResponsSuccess(c, 200, "Succes get data user", Shops, TotalItems, json.PageSize, json.Page)
 }
 
 func GetShopByCode(c *fiber.Ctx) error {
+	param := c.Params("scd")
+
+	json := new(structur.SizeGetDataRequest)
+	if err := c.BodyParser(json); err != nil {
+		return helper.ResponsError(c, 400, "Invalid JSON", err)
+	}
+
+	if json.Page < 1 {
+		json.Page = 1
+	}
+	if json.PageSize < 1 {
+		json.PageSize = 10
+	}
+	offset := (json.Page - 1) * json.PageSize
+
 	db := database.DB
-	param := c.Params("sid")
-	sid, err := guuid.Parse(param)
-	if err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"message": "Invalid request params sid",
-		})
-	}
-
-	// Kebutuhan pagination
-	page, err := strconv.Atoi(c.Query("page", "1"))
-	if err != nil || page < 1 {
-		page = 1
-	}
-
-	limit, err := strconv.Atoi(c.Query("page_size", "10"))
-	if err != nil || limit < 1 {
-		limit = 10
-	}
-
-	offset := (page - 1) * limit
-	var totalItems int64
-
 	shop := Shop{}
-	query := Shop{SID: sid}
-	err = db.First(&shop, &query).Error
+	query := Shop{Spcd: param}
+	err := db.First(&shop, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return c.JSON(fiber.Map{
-			"code":    404,
-			"message": "Shop not found",
-			"data": fiber.Map{
-				"data":       []Shop{},
-				"pagination": helper.SetPagination(totalItems, limit, page),
-			},
-		})
+		return helper.ResponsError(c, 404, "Shop not found", err)
 	}
 
-	db.Model(&model.Shop{}).Where(&query).Count(&totalItems)
-	db.Model(&model.Shop{}).Where(&query).Order("SID asc").Offset(offset).Limit(limit).Find(&shop)
-	return c.JSON(fiber.Map{
-		"code":    200,
-		"message": "Success get data",
-		"data": fiber.Map{
-			"data":       shop,
-			"pagination": helper.SetPagination(totalItems, limit, page),
-		},
-	})
+	db.Model(&model.Shop{}).Where(&query).Count(&TotalItems)
+	db.Model(&model.Shop{}).Where(&query).Order("ID DESC").Offset(offset).Limit(json.PageSize).Find(&shop)
+	return helper.ResponsSuccess(c, 200, "Succes get shop data by code", shop, TotalItems, json.PageSize, json.Page)
 }
 
 func UpdateShop(c *fiber.Ctx) error {
-	db := database.DB
-	param := c.Params("sid")
-	sid, err := guuid.Parse(param)
-	if err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"message": "Invalid request parameter",
-		})
-	}
-
+	param := c.Params("scd")
 	json := new(structur.SliceShopRequest)
 	if err := c.BodyParser(json); err != nil {
-		return c.JSON(fiber.Map{
-			"code":    400,
-			"message": "Invalid JSON",
-		})
+		return helper.ResponsError(c, 400, "Invalid JSON", err)
 	}
 
+	db := database.DB
 	found := Shop{}
-	query := Shop{
-		SID: sid,
-	}
-
-	err = db.First(&found, &query).Error
+	query := Shop{Spcd: param}
+	err := db.First(&found, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return c.JSON(fiber.Map{
-			"code":    404,
-			"message": "Shop not found",
-		})
+		return helper.ResponsError(c, 404, "Shop not found", err)
 	}
 
 	if json.Spnm != "" {
@@ -172,38 +118,21 @@ func UpdateShop(c *fiber.Ctx) error {
 	}
 
 	db.Save(&found)
-	return c.JSON(fiber.Map{
-		"code":    200,
-		"message": "Sucsess update shop data",
-	})
+	return helper.ResponseBasic(c, 200, "Sucsess update shop data")
 }
 
 func DeleteShop(c *fiber.Ctx) error {
+	param := c.Params("spcd")
+
 	db := database.DB
-	param := c.Params("sid")
-	sid, err := guuid.Parse(param)
-	if err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"message": "Invalid SPCD parameter",
-		})
-	}
-
 	found := Shop{}
-	query := Shop{
-		SID: sid,
-	}
+	query := Shop{Spcd: param}
 
-	err = db.First(&found, &query).Error
+	err := db.First(&found, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return c.JSON(fiber.Map{
-			"code":    400,
-			"message": "Shop not found",
-		})
+		return helper.ResponsError(c, 404, "Shop not found", err)
 	}
 
 	db.Delete(&found)
-	return c.JSON(fiber.Map{
-		"code":    200,
-		"message": "Sucess  delete shop data",
-	})
+	return helper.ResponseBasic(c, 200, "Sucess  delete shop data")
 }

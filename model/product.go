@@ -1,12 +1,16 @@
 package model
 
-import guuid "github.com/google/uuid"
+import (
+	"time"
+
+	guuid "github.com/google/uuid"
+)
 
 type Product struct {
 	ID        int64      `gorm:"autoIncrement" json:"-"`
 	PID       guuid.UUID `gorm:"primaryKey" json:"-"`
 	Pnm       string     `json:"pnm"`
-	Pcd       string     `json:"pcd"`
+	Pcd       string     `gorm:"unique" json:"pcd"`
 	Qty       int64      `json:"qty"`
 	Price     int64      `json:"price"`
 	Catcd     string     `json:"catcd"`
@@ -14,6 +18,6 @@ type Product struct {
 	Spcd      string     `json:"spcd"`
 	Spnm      string     `json:"spnm"`
 	ShopRefer guuid.UUID `json:"-"`
-	CreatedAt int64      `gorm:"autoCreateTime" json:"-" `
-	UpdatedAt int64      `gorm:"autoUpdateTime" json:"-"`
+	CreatedAt time.Time  `gorm:"autoCreateTime" json:"-" `
+	UpdatedAt time.Time  `gorm:"autoUpdateTime" json:"-"`
 }

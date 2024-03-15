@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	guuid "github.com/google/uuid"
+	"go.mod/database"
 	"go.mod/handlers/structur"
 	"go.mod/helper"
 	"go.mod/model"
@@ -10,23 +14,27 @@ import (
 )
 
 func CreateUser(c *fiber.Ctx) error {
+	// Ambil token dari fiber.Ctx.Locals()
+	token, ok := c.Locals("token").(*jwt.Token)
+	if !ok {
+		return helper.ResponseBasic(c, 400, "Failed to get token from context")
+	}
+
+	// user := c.Locals("token").(structur.Token)
+
+	fmt.Println(token)
+
 	json := new(structur.SliceUserRequest)
 	if err := c.BodyParser(json); err != nil {
-		// return c.Status(400).JSON(fiber.Map{
-		// 	"message": "Invalid JSON",
-		// 	"details": err,
-		// })
 		return helper.ResponsError(c, 400, "Invalid JSON", err)
 	}
 
+	// cek apakah toko tersedia
+	db := database.DB
 	shop := Shop{}
 	queryShop := Shop{Spcd: json.Spcd}
 	err := db.First(&shop, &queryShop).Error
 	if err == gorm.ErrRecordNotFound {
-		// return c.Status(404).JSON(fiber.Map{
-		// 	"message": "Shop not found",
-		// 	"details": err,
-		// })
 		return helper.ResponsError(c, 404, "Shop not found", err)
 	}
 
@@ -50,36 +58,20 @@ func CreateUser(c *fiber.Ctx) error {
 	query := User{Unm: new.Unm}
 	err = db.First(&found, &query).Error
 	if err != gorm.ErrRecordNotFound {
-		// return c.Status(400).JSON(fiber.Map{
-		// 	"message": "User already exists",
-		// 	"details": err,
-		// })
 		return helper.ResponsError(c, 400, "User already exists", err)
 	}
 
 	err = db.Create(&new).Error
 	if err != nil {
-		// return c.Status(500).JSON(fiber.Map{
-		// 	"message": "Invalid query database",
-		// 	"details": err,
-		// })
 		return helper.ResponsError(c, 500, "Invalid query database", err)
 	}
 
-	// return c.Status(200).JSON(fiber.Map{
-	// 	"message": "Success create user",
-	// 	"details": "-",
-	// })
 	return helper.ResponsSuccess(c, 200, "Success create user", found, 1, 10, 1)
 }
 
 func GetUsers(c *fiber.Ctx) error {
 	json := new(structur.SizeGetDataRequest)
 	if err := c.BodyParser(json); err != nil {
-		// return c.Status(400).JSON(fiber.Map{
-		// 	"message": "Invalid JSON",
-		// 	"details": err,
-		// })
 		return helper.ResponsError(c, 400, "Invalid JSON", err)
 	}
 
@@ -92,22 +84,18 @@ func GetUsers(c *fiber.Ctx) error {
 	}
 	offset := (json.Page - 1) * json.PageSize
 
+	db := database.DB
 	Users := []User{}
-	db.Model(&model.User{}).Count(&totalItems)
+	db.Model(&model.User{}).Count(&TotalItems)
 	db.Model(&model.User{}).Order("ID DESC").Offset(offset).Limit(json.PageSize).Find(&Users)
-	// return c.Status(200).JSON(fiber.Map{
-	// 	"message": "Success get product data",
-	// 	"data": fiber.Map{
-	// 		"data":       Users,
-	// 		"pagination": helper.SetPagination(totalItems, json.PageSize, json.Page),
-	// 	},
-	// })
-	return helper.ResponsSuccess(c, 200, "Succes get data user", Users, totalItems, json.PageSize, json.Page)
+
+	return helper.ResponsSuccess(c, 200, "Succes get data user", Users, TotalItems, json.PageSize, json.Page)
 }
 
 func GetUserByUnm(c *fiber.Ctx) error {
-	param := c.Params("pcd")
+	param := c.Params("unm")
 
+	db := database.DB
 	user := User{}
 	query := User{Unm: param}
 	err := db.First(&user, &query).Error
@@ -120,11 +108,13 @@ func GetUserByUnm(c *fiber.Ctx) error {
 
 func UpdateUserByUnm(c *fiber.Ctx) error {
 	param := c.Params("unm")
+
 	json := new(structur.SliceUserRequest)
 	if err := c.BodyParser(json); err != nil {
 		return helper.ResponsError(c, 400, "Invalid JSON", err)
 	}
 
+	db := database.DB
 	user := User{}
 	query := User{Unm: param}
 	err := db.First(&user, &query).Error
@@ -162,6 +152,7 @@ func UpdateUserByUnm(c *fiber.Ctx) error {
 func DeleteByUnm(c *fiber.Ctx) error {
 	param := c.Params("unm")
 
+	db := database.DB
 	user := User{}
 	query := User{Unm: param}
 	err := db.First(&user, &query).Error
@@ -169,13 +160,12 @@ func DeleteByUnm(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 404, "User not found", err)
 	}
 
-	// db.Model(&found).Association("Sessions").Delete()
+	// DB.Model(&found).Association("Sessions").Delete()
 	db.Model(&user).Association("Products").Delete()
 	db.Delete(&user)
-	return c.Status(200).JSON(fiber.Map{
-		"message": "Success delete user data",
-		"details": "-",
-	})
+
+	username := fmt.Sprintf("Success delete user data %s", user.Unm)
+	return helper.ResponseBasic(c, 200, username)
 }
 
 func ChangePassword(c *fiber.Ctx) error {
@@ -184,6 +174,7 @@ func ChangePassword(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 400, "Invalid JSON", err)
 	}
 
+	db := database.DB
 	user := User{}
 	query := User{Unm: json.Unm}
 	err := db.First(&user, &query).Error
@@ -197,8 +188,6 @@ func ChangePassword(c *fiber.Ctx) error {
 
 	user.Pass = helper.HashAndSalt([]byte(json.NewPass))
 	db.Save(&user)
-	return c.Status(200).JSON(fiber.Map{
-		"message": "Success change password",
-		"details": "-",
-	})
+	
+	return helper.ResponseBasic(c, 200, "Success change password")
 }

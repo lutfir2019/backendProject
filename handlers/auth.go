@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
-	guuid "github.com/google/uuid"
+
+	// guuid "github.com/google/uuid"
+
 	"go.mod/database"
 	"go.mod/helper"
 	"go.mod/model"
@@ -18,9 +18,8 @@ type Product model.Product
 type Shop model.Shop
 
 var (
-	db         = database.DB
 	SecretKey  = []byte("IUAacnfkjdxMJXO;ALSKZXCSOIGAJFMDSKAMsijkd[0ANUG0[")
-	totalItems int64
+	TotalItems int64
 )
 
 func Login(c *fiber.Ctx) error {
@@ -29,7 +28,6 @@ func Login(c *fiber.Ctx) error {
 		Pass string `json:"pass"`
 	}
 
-	db := database.DB
 	json := new(LoginRequest)
 	if err := c.BodyParser(json); err != nil {
 		return c.Status(400).JSON(fiber.Map{
@@ -37,6 +35,7 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
+	db := database.DB
 	found := User{}
 	query := User{Unm: json.Unm}
 	err := db.First(&found, &query).Error
@@ -51,67 +50,46 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	isAdmin := found.Rlcd != "ROLE-3"
-
 	// Create the Claims
 	claims := jwt.MapClaims{
-		"name":  found.Unm,
-		"admin": isAdmin,
-		"exp":   time.Now().Add(time.Hour * 24).Unix(),
+		"username": found.Unm,
+		"role":     found.Rlcd,
+		"exp":      helper.SessionExpires().Unix(),
 	}
 
 	// Create token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Generate encoded token and send it as response.
-	t, err := token.SignedString(SecretKey)
+	t, err := token.SignedString([]byte(SecretKey))
 	if err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"message": "Failed to sign session",
-			"details": err,
-		})
+		return helper.ResponsError(c, 400, "Failed to create token", err)
 	}
 
-	session := Session{
-		UserRefer: found.UID,
-		Expires:   helper.SessionExpires(),
-		Sessionid: guuid.New(),
-		Token:     "Bearer " + t,
-	}
+	// session := Session{
+	// 	UserRefer: found.UID,
+	// 	Expires:   helper.SessionExpires(),
+	// 	Sessionid: guuid.New(),
+	// 	Token:     "Bearer " + t,
+	// }
 
-	db.Create(&session)
-	// c.Cookie(&fiber.Cookie{
-	// 	Name:     "sessionid",
-	// 	Expires:  helper.SessionExpires(),
-	// 	Value:    session.Token,
-	// 	HTTPOnly: true,
-	// })
+	// db.Create(&session)
+	c.Cookie(&fiber.Cookie{
+		Name:     "token",
+		Expires:  helper.SessionExpires(),
+		Value:    t,
+		HTTPOnly: true,
+	})
 
 	return c.Status(200).JSON(fiber.Map{
 		"message": "Sucessfully",
-		"data":    session,
+		"token":   t,
 	})
 }
 
 func Logout(c *fiber.Ctx) error {
-	db := database.DB
-	json := new(Session)
-	if err := c.BodyParser(json); err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"message": "Invalid JSON",
-		})
-	}
-	session := Session{}
-	query := Session{Sessionid: json.Sessionid}
-	err := db.First(&session, &query).Error
-	if err == gorm.ErrRecordNotFound {
-		return c.Status(404).JSON(fiber.Map{
-			"message": "Session not found",
-		})
-	}
-	db.Delete(&session)
-	c.ClearCookie("sessionid")
+	c.ClearCookie("token")
 	return c.Status(200).JSON(fiber.Map{
-		"message": "sucess",
+		"message": "Logout sucessfully",
 	})
 }

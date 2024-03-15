@@ -72,7 +72,7 @@ func GenerateCode(inputText string) string {
 			}
 
 			if !codeExists(newCode) {
-				return newCode
+				return string(newCode)
 			}
 		}
 	}
@@ -80,7 +80,7 @@ func GenerateCode(inputText string) string {
 
 func codeExists(newCode string) bool {
 	found := model.Shop{}
-	query := model.Shop{Spnm: newCode}
+	query := model.Shop{Spcd: newCode}
 	err := database.DB.First(&found, &query).Error
 	return err != gorm.ErrRecordNotFound
 }
@@ -99,5 +99,11 @@ func ResponsError(c *fiber.Ctx, status int, msg string, err error) error {
 	return c.Status(status).JSON(fiber.Map{
 		"message": msg,
 		"details": err,
+	})
+}
+
+func ResponseBasic(c *fiber.Ctx, status int, msg string) error {
+	return c.Status(status).JSON(fiber.Map{
+		"message": msg,
 	})
 }

@@ -1,5 +1,7 @@
 package structur
 
+import "time"
+
 type SliceUserRequest struct {
 	Nam  string `json:"nam"`
 	Unm  string `json:"unm"`
@@ -42,4 +44,10 @@ type ChangePasswordRequest struct {
 
 type CreateProductRequest struct {
 	Data []SliceProductRequest `json:"data"`
+}
+
+type Token struct {
+	Name string
+	Role string
+	Exp  time.Time
 }

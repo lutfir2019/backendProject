@@ -1,14 +1,16 @@
 package model
 
 import (
+	"time"
+
 	guuid "github.com/google/uuid"
 )
 
 type User struct {
-	ID        int64      `gorm:"primaryKey" json:"-"`
-	UID       guuid.UUID `json:"-"`
+	ID        int64      `gorm:"autoIncrement" json:"-"`
+	UID       guuid.UUID `json:"primaryKey"`
 	Nam       string     `json:"nam"`
-	Unm       string     `json:"unm"`
+	Unm       string     `gorm:"unique" json:"unm"`
 	Pass      string     `json:"-"`
 	Rlcd      string     `json:"rlcd"`
 	Rlnm      string     `json:"rlnm"`
@@ -19,6 +21,6 @@ type User struct {
 	Spnm      string     `json:"spnm"`
 	ShopRefer guuid.UUID `json:"-"`
 	Sessions  []Session  `gorm:"foreignKey:UserRefer; constraint:OnUpdate:CASCADE, OnDelete:CASCADE;" json:"-"`
-	CreatedAt int64      `gorm:"autoCreateTime" json:"-" `
-	UpdatedAt int64      `gorm:"autoUpdateTime:milli" json:"-"`
+	CreatedAt time.Time  `gorm:"autoCreateTime" json:"-" `
+	UpdatedAt time.Time  `gorm:"autoUpdateTime:milli" json:"-"`
 }

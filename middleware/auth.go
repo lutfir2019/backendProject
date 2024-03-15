@@ -50,6 +50,9 @@ func Authenticated(c *fiber.Ctx) error {
 		})
 	}
 
+	// Simpan token di dalam fiber.Ctx.Locals() untuk digunakan di fungsi controller
+	c.Locals("token", token)
+
 	// Lanjutkan jika token valid dan belum kedaluwarsa
 	return c.Next()
 }
