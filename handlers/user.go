@@ -160,7 +160,7 @@ func DeleteByUnm(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 404, "User not found", err)
 	}
 
-	// DB.Model(&found).Association("Sessions").Delete()
+	db.Model(&user).Association("Sessions").Delete()
 	db.Model(&user).Association("Products").Delete()
 	db.Delete(&user)
 
@@ -188,6 +188,6 @@ func ChangePassword(c *fiber.Ctx) error {
 
 	user.Pass = helper.HashAndSalt([]byte(json.NewPass))
 	db.Save(&user)
-	
+
 	return helper.ResponseBasic(c, 200, "Success change password")
 }
