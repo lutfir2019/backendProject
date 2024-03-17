@@ -1,13 +1,16 @@
 package helper
 
 import (
+	crand "crypto/rand"
+	"crypto/rsa"
 	"fmt"
+	"log"
 	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
+	guuid "github.com/google/uuid"
 	"go.mod/database"
 	"go.mod/model"
 	"golang.org/x/crypto/bcrypt"
@@ -109,15 +112,58 @@ func ResponseBasic(c *fiber.Ctx, status int, msg string) error {
 	})
 }
 
-func ParseJwtToken(c *fiber.Ctx, token *jwt.Token) error {
-	// Simpan informasi pengguna ke dalam fiber.Ctx.Locals()
-	claims := token.Claims.(jwt.MapClaims)
-	// username := claims["username"].(string)
-	// role := claims["role"].(string)
-	// shopCode := claims["spcd"].(string)
+func ParseSessionId(c *fiber.Ctx, tokenString string) error {
+	token, err := guuid.Parse(tokenString)
+	if err != nil {
+		return ResponsError(c, 400, "Invalid Session Id", err)
+	}
 
-	fmt.Println(claims)
-	c.Locals("user", claims)
+	session := model.Session{}
+	query := model.Session{Sessionid: token}
+	err = database.DB.First(&session, &query).Error
+	if err == fiber.ErrNotFound {
+		return ResponsError(c, 401, "Please login before", err)
+	}
+
+	user := model.User{}
+	queryUser := model.User{UID: session.UserRefer}
+	err = database.DB.First(&user, &queryUser).Error
+	if err == fiber.ErrNotFound {
+		return ResponsError(c, 404, "User not register", err)
+	}
+
+	userData := map[string]interface{}{
+		"username":  user.Unm,
+		"role":      user.Rlcd,
+		"shopcode":  user.Spcd,
+		"sessionId": token,
+	}
+	c.Locals("user", userData)
 
 	return c.Next()
+}
+
+// GetPrivateKey mengembalikan kunci privat RSA
+func GetPrivateKey() *rsa.PrivateKey {
+	// Misalnya, di sini Anda menghasilkan kunci privat baru
+	privateKey, err := rsa.GenerateKey(crand.Reader, 2048)
+	if err != nil {
+		log.Fatal("Failed to generate RSA private key:", err)
+	}
+	return privateKey
+}
+
+func GetUserLocal(c *fiber.Ctx, get string) (string, error) {
+	userLocal := c.Locals("user")
+	if userLocal != nil {
+		if user, ok := userLocal.(map[string]interface{}); ok {
+			if value, found := user[get]; found {
+				if strValue, ok := value.(string); ok {
+					return strValue, nil // Mengembalikan nilai string jika ditemukan
+				}
+				return "", fmt.Errorf("value is not a string") // Mengembalikan error jika nilai bukan string
+			}
+		}
+	}
+	return "", fmt.Errorf("user or requested key not found") // Mengembalikan error jika user atau key tidak ditemukan
 }

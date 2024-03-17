@@ -23,8 +23,8 @@ func main() {
 	godotenv.Load()
 	app := fiber.New()
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*", // comma string format e.g. "localhost, nikschaefer.tech"
-		AllowHeaders: "Origin, Content-Type, Accept",
+		AllowOrigins: "*", // comma string format e.g. "localhost, dashboard.tech"
+		AllowHeaders: "Authorization, Origin, Content-Type, Accept",
 	}))
 
 	database.ConnectDB()

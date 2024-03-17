@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 	guuid "github.com/google/uuid"
 	"go.mod/database"
@@ -58,16 +60,22 @@ func GetShops(c *fiber.Ctx) error {
 	db := database.DB
 	Shops := []Shop{}
 
-	// Hitung total item (untuk kebutuhan pagination)
-	db.Model(&model.Shop{}).Count(&TotalItems)
-	// Ambil data toko dengan pagination
-	db.Model(&model.Shop{}).Order("ID DESC").Order("s_id").Offset(offset).Limit(json.PageSize).Find(&Shops)
+	// Persiapkan query awal tanpa kondisi tambahan
+	query := db.Model(&model.Shop{}).Order("ID DESC")
+
+	if json.Spnm != "" {
+		query = query.Where("LOWER(spnm) LIKE ?", "%"+strings.ToLower(json.Spnm)+"%")
+	}
+
+	// Eksekusi query dan simpan hasilnya di dalam Users
+	query.Count(&TotalItems)
+	query.Offset(offset).Limit(json.PageSize).Find(&Shops)
 
 	return helper.ResponsSuccess(c, 200, "Succes get data user", Shops, TotalItems, json.PageSize, json.Page)
 }
 
 func GetShopByCode(c *fiber.Ctx) error {
-	param := c.Params("scd")
+	param := c.Params("spcd")
 
 	json := new(structur.SizeGetDataRequest)
 	if err := c.BodyParser(json); err != nil {
@@ -96,7 +104,7 @@ func GetShopByCode(c *fiber.Ctx) error {
 }
 
 func UpdateShop(c *fiber.Ctx) error {
-	param := c.Params("scd")
+	param := c.Params("spcd")
 	json := new(structur.SliceShopRequest)
 	if err := c.BodyParser(json); err != nil {
 		return helper.ResponsError(c, 400, "Invalid JSON", err)

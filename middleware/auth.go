@@ -1,49 +1,35 @@
 package middleware
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
-	"go.mod/handlers"
 	"go.mod/helper"
 )
 
 // Middleware untuk memeriksa token JWT
 func Authenticated(c *fiber.Ctx) error {
-	// Ambil token dari header Authorization
-	authHeader := c.Get("Authorization")
+	var tokenString string
+	authorization := c.Get("Authorization")
 
-	// Periksa jika Authorization header tidak ada
-	if authHeader == "" {
-		return helper.ResponseBasic(c, 401, "Authorization header missing")
+	if strings.HasPrefix(authorization, "Bearer ") {
+		tokenString = strings.TrimPrefix(authorization, "Bearer ")
+	} else if c.Cookies("__s") != "" {
+		tokenString = c.Cookies("__s")
+	}
+	if tokenString == "" {
+		return helper.ResponseBasic(c, fiber.StatusUnauthorized, "You are not logged in")
 	}
 
-	// Pecah string menjadi bagian "Bearer" dan token
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return helper.ResponseBasic(c, 401, "Invalid Authorization header format")
+	return helper.ParseSessionId(c, tokenString)
+}
+
+func DenyForStaff(c *fiber.Ctx) error {
+	localUser := c.Locals("user").(map[string]interface{})
+	if localUser == nil || localUser["role"].(string) == "ROLE-3" {
+		return helper.ResponseBasic(c, 403, "Forbiden")
 	}
-
-	tokenString := parts[1]
-
-	// Validasi token
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Validasi metode penandatanganan token
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return handlers.SecretKey, nil
-	})
-
-	if err != nil {
-		return helper.ResponseBasic(c, fiber.StatusUnauthorized, "Unauthorized")
-	}
-
-	// Periksa apakah token valid
-	if !token.Valid {
-		return helper.ResponseBasic(c, fiber.StatusUnauthorized, "Invalid token")
-	}
-
-	return helper.ParseJwtToken(c, token)
+	fmt.Println(localUser)
+	return c.Next()
 }

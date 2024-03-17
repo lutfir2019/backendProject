@@ -7,9 +7,8 @@ import (
 )
 
 type Session struct {
-	Sessionid guuid.UUID `gorm:"primaryKey" json:"sessionid"`
+	Sessionid guuid.UUID `gorm:"primaryKey; unique" json:"sessionid"`
 	Expires   time.Time  `json:"-"`
 	UserRefer guuid.UUID `json:"-"`
-	Token     string     `json:"token"` // JWT token for client side to access the session data
 	CreatedAt time.Time  `gorm:"autoCreateTime" json:"-" `
 }

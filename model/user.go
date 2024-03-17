@@ -8,7 +8,7 @@ import (
 
 type User struct {
 	ID        int64      `gorm:"autoIncrement" json:"-"`
-	UID       guuid.UUID `json:"primaryKey"`
+	UID       guuid.UUID `gorm:"primaryKey; unique" json:"-"`
 	Nam       string     `json:"nam"`
 	Unm       string     `gorm:"unique" json:"unm"`
 	Pass      string     `json:"-"`

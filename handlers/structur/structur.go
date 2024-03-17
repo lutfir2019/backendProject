@@ -32,6 +32,11 @@ type SliceProductRequest struct {
 }
 
 type SizeGetDataRequest struct {
+	Nam  string `json:"nam"`
+	Spcd string `json:"spcd"`
+	Spnm string `json:"spnm"`
+	Unm  string `json:"unm"`
+
 	Page     int `json:"page"`
 	PageSize int `json:"page_size"`
 }

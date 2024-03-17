@@ -7,6 +7,7 @@ import (
 	"go.mod/database"
 	"go.mod/handlers/structur"
 	"go.mod/helper"
+	"go.mod/middleware"
 	"go.mod/model"
 	"gorm.io/gorm"
 )
@@ -15,6 +16,10 @@ func CreateProduct(c *fiber.Ctx) error {
 	json := new(structur.CreateProductRequest)
 	if err := c.BodyParser(json); err != nil {
 		return helper.ResponseBasic(c, 400, "Invalid JSON")
+	}
+
+	if err := middleware.DenyForStaff(c); err != nil {
+		return err // Mengembalikan respons error dari middleware
 	}
 
 	db := database.DB
@@ -108,6 +113,10 @@ func GetProductByCode(c *fiber.Ctx) error {
 func UpdateProductByCode(c *fiber.Ctx) error {
 	param := c.Params("pcd")
 
+	if err := middleware.DenyForStaff(c); err != nil {
+		return err // Mengembalikan respons error dari middleware
+	}
+
 	json := new(structur.SliceProductRequest)
 	if err := c.BodyParser(json); err != nil {
 		return helper.ResponsError(c, 400, "Invalid JSON", err)
@@ -149,8 +158,9 @@ func UpdateProductByCode(c *fiber.Ctx) error {
 func DeleteProduct(c *fiber.Ctx) error {
 	param := c.Params("pcd")
 
-	user := c.Locals("user")
-	fmt.Println(user)
+	if err := middleware.DenyForStaff(c); err != nil {
+		return err // Mengembalikan respons error dari middleware
+	}
 
 	db := database.DB
 	found := Product{}

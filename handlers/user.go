@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
 	guuid "github.com/google/uuid"
 	"go.mod/database"
 	"go.mod/handlers/structur"
 	"go.mod/helper"
+	"go.mod/middleware"
 	"go.mod/model"
 	"gorm.io/gorm"
 )
@@ -19,8 +20,10 @@ func CreateUser(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 400, "Invalid JSON", err)
 	}
 
-	userLocals := c.Locals("user").(jwt.MapClaims)
-	fmt.Println(userLocals["role"])
+	localUser := c.Locals("user").(map[string]interface{})
+	if localUser == nil || localUser["role"].(string) == "ROLE-3" {
+		return helper.ResponseBasic(c, 403, "Forbiden")
+	}
 
 	// cek apakah toko tersedia
 	db := database.DB
@@ -51,7 +54,7 @@ func CreateUser(c *fiber.Ctx) error {
 	query := User{Unm: new.Unm}
 	err = db.First(&user, &query).Error
 	if err != gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 400, "User already exists", err)
+		return helper.ResponsError(c, 400, "Username already exists", err)
 	}
 
 	err = db.Create(&new).Error
@@ -68,6 +71,19 @@ func GetUsers(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 400, "Invalid JSON", err)
 	}
 
+	localUser := c.Locals("user").(map[string]interface{})
+	if localUser == nil || localUser["role"].(string) == "ROLE-3" {
+		return helper.ResponseBasic(c, 403, "Forbiden")
+	}
+	spcd, ok := localUser["shopcode"].(string)
+	if !ok || spcd == "" {
+		return helper.ResponseBasic(c, 404, "Invalid Shop code")
+	}
+	role, ok := localUser["role"].(string)
+	if !ok || spcd == "" {
+		return helper.ResponseBasic(c, 404, "Invalid Role code")
+	}
+
 	// Set default value if not set in the request page
 	if json.Page < 1 {
 		json.Page = 1
@@ -79,8 +95,24 @@ func GetUsers(c *fiber.Ctx) error {
 
 	db := database.DB
 	Users := []User{}
-	db.Model(&model.User{}).Count(&TotalItems)
-	db.Model(&model.User{}).Order("ID DESC").Offset(offset).Limit(json.PageSize).Find(&Users)
+
+	// Persiapkan query awal tanpa kondisi tambahan
+	query := db.Model(&model.User{}).Order("ID DESC")
+
+	if json.Spcd != "" {
+		query = query.Where(&model.User{Spcd: json.Spcd})
+	}
+	if json.Nam != "" {
+		query = query.Where("LOWER(nam) LIKE ?", "%"+strings.ToLower(json.Nam)+"%")
+	}
+	// Jika role bukan "ROLE-1", tambahkan kondisi Spcd
+	if role != "ROLE-1" {
+		query = query.Where(&model.User{Spcd: spcd})
+	}
+
+	// Eksekusi query dan simpan hasilnya di dalam Users
+	query.Count(&TotalItems)
+	query.Offset(offset).Limit(json.PageSize).Find(&Users)
 
 	return helper.ResponsSuccess(c, 200, "Succes get data user", Users, TotalItems, json.PageSize, json.Page)
 }
@@ -145,11 +177,15 @@ func UpdateUserByUnm(c *fiber.Ctx) error {
 	}
 
 	db.Save(user)
-	return helper.ResponsSuccess(c, 200, "Succes get data user", User{}, 1, 10, 1)
+	return helper.ResponsSuccess(c, 200, "Succes update data user", User{}, 1, 10, 1)
 }
 
 func DeleteByUnm(c *fiber.Ctx) error {
 	param := c.Params("unm")
+
+	if err := middleware.DenyForStaff(c); err != nil {
+		return err // Mengembalikan respons error dari middleware
+	}
 
 	db := database.DB
 	user := User{}
