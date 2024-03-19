@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	guuid "github.com/google/uuid"
 	"go.mod/database"
 	"go.mod/handlers/structur"
 	"go.mod/helper"
@@ -23,9 +24,9 @@ func CreateProduct(c *fiber.Ctx) error {
 	}
 
 	db := database.DB
-	count := 0
+	existingProducts := make(map[string]bool)
+
 	for _, item := range json.Data {
-		count++
 		// Check if the product already exists
 		found := Product{}
 		query := Product{Pcd: item.Pcd}
@@ -33,40 +34,39 @@ func CreateProduct(c *fiber.Ctx) error {
 		if err != gorm.ErrRecordNotFound {
 			return helper.ResponseBasic(c, 400, fmt.Sprintf("The product with Code %s is already registered.", item.Pcd))
 		}
-		if count == len(json.Data) {
-			for _, item := range json.Data {
-				count++
-				// Mencari toko berdasarkan kode yang diberikan dalam JSON
-				shop := Shop{}
-				queryShop := Shop{Spcd: item.Spcd}
-				err := db.First(&shop, &queryShop).Error
-				if err != nil {
-					return helper.ResponseBasic(c, 400, fmt.Sprintf("Invalid code from %s.", item.Spnm))
-				}
-				if count == len(json.Data) {
-					for _, item := range json.Data {
-						shop := Shop{}
-						queryShop := Shop{Spcd: item.Spcd}
-						db.First(&shop, &queryShop)
-						newProduct := Product{
-							Pnm:       item.Pnm,
-							Pcd:       item.Pcd,
-							Qty:       item.Qty,
-							Price:     item.Price,
-							Catcd:     item.Catcd,
-							Catnm:     item.Catnm,
-							Spcd:      item.Spcd,
-							Spnm:      item.Spnm,
-							ShopRefer: shop.SID,
-						}
-						// Create the product
-						err = db.Create(&newProduct).Error
-						if err != nil {
-							return helper.ResponseBasic(c, 500, "Invalid query database")
-						}
-					}
-				}
-			}
+
+		// Check if the product code already exists in the current batch
+		if existingProducts[item.Pcd] {
+			return helper.ResponseBasic(c, 400, fmt.Sprintf("Duplicate product code found: %s", item.Pcd))
+		}
+
+		existingProducts[item.Pcd] = true
+
+		// Mencari toko berdasarkan kode yang diberikan dalam JSON
+		shop := Shop{}
+		queryShop := Shop{Spcd: item.Spcd}
+		err = db.First(&shop, &queryShop).Error
+		if err != nil {
+			return helper.ResponseBasic(c, 400, fmt.Sprintf("Invalid code from %s.", item.Spnm))
+		}
+
+		newProduct := Product{
+			PID:       guuid.New(),
+			Pnm:       item.Pnm,
+			Pcd:       item.Pcd,
+			Qty:       item.Qty,
+			Price:     item.Price,
+			Catcd:     item.Catcd,
+			Catnm:     item.Catnm,
+			Spcd:      item.Spcd,
+			Spnm:      item.Spnm,
+			ShopRefer: shop.SID,
+		}
+
+		// Create the product
+		err = db.Create(&newProduct).Error
+		if err != nil {
+			return helper.ResponseBasic(c, 500, "Invalid query database")
 		}
 	}
 
