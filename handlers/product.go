@@ -147,7 +147,7 @@ func UpdateProductByCode(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 500, "Invalid query databsae", err)
 	}
 
-	return helper.ResponsSuccess(c, 200, "Success update product data", Product{}, 1, 10, 1)
+	return helper.ResponsSuccess(c, 200, "Success update product data", json, 1, 10, 1)
 }
 
 func DeleteProduct(c *fiber.Ctx) error {
