@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	guuid "github.com/google/uuid"
 	"go.mod/database"
 	"go.mod/handlers/structur"
 	"go.mod/helper"
@@ -23,52 +24,59 @@ func CreateProduct(c *fiber.Ctx) error {
 	}
 
 	db := database.DB
-	count := 0
+	tx := db.Begin() // Memulai transaksi
+
+	existingProducts := make(map[string]bool)
+
 	for _, item := range json.Data {
-		count++
 		// Check if the product already exists
 		found := Product{}
 		query := Product{Pcd: item.Pcd}
-		err := db.First(&found, &query).Error
+		err := tx.First(&found, &query).Error
 		if err != gorm.ErrRecordNotFound {
+			tx.Rollback() // Mengembalikan transaksi karena terjadi kesalahan
 			return helper.ResponseBasic(c, 400, fmt.Sprintf("The product with Code %s is already registered.", item.Pcd))
 		}
-		if count == len(json.Data) {
-			for _, item := range json.Data {
-				count++
-				// Mencari toko berdasarkan kode yang diberikan dalam JSON
-				shop := Shop{}
-				queryShop := Shop{Spcd: item.Spcd}
-				err := db.First(&shop, &queryShop).Error
-				if err != nil {
-					return helper.ResponseBasic(c, 400, fmt.Sprintf("Invalid code from %s.", item.Spnm))
-				}
-				if count == len(json.Data) {
-					for _, item := range json.Data {
-						shop := Shop{}
-						queryShop := Shop{Spcd: item.Spcd}
-						db.First(&shop, &queryShop)
-						newProduct := Product{
-							Pnm:       item.Pnm,
-							Pcd:       item.Pcd,
-							Qty:       item.Qty,
-							Price:     item.Price,
-							Catcd:     item.Catcd,
-							Catnm:     item.Catnm,
-							Spcd:      item.Spcd,
-							Spnm:      item.Spnm,
-							ShopRefer: shop.SID,
-						}
-						// Create the product
-						err = db.Create(&newProduct).Error
-						if err != nil {
-							return helper.ResponseBasic(c, 500, "Invalid query database")
-						}
-					}
-				}
-			}
+
+		// Check if the product code already exists in the current batch
+		if existingProducts[item.Pcd] {
+			tx.Rollback() // Mengembalikan transaksi karena terjadi kesalahan
+			return helper.ResponseBasic(c, 400, fmt.Sprintf("Duplicate product code found: %s", item.Pcd))
+		}
+
+		existingProducts[item.Pcd] = true
+
+		// Mencari toko berdasarkan kode yang diberikan dalam JSON
+		shop := Shop{}
+		queryShop := Shop{Spcd: item.Spcd}
+		err = tx.First(&shop, &queryShop).Error
+		if err != nil {
+			tx.Rollback() // Mengembalikan transaksi karena terjadi kesalahan
+			return helper.ResponseBasic(c, 400, fmt.Sprintf("Invalid code from %s.", item.Spnm))
+		}
+
+		newProduct := Product{
+			PID:       guuid.New(),
+			Pnm:       item.Pnm,
+			Pcd:       item.Pcd,
+			Qty:       item.Qty,
+			Price:     item.Price,
+			Catcd:     item.Catcd,
+			Catnm:     item.Catnm,
+			Spcd:      item.Spcd,
+			Spnm:      item.Spnm,
+			ShopRefer: shop.SID,
+		}
+
+		// Create the product
+		err = tx.Create(&newProduct).Error
+		if err != nil {
+			tx.Rollback() // Mengembalikan transaksi karena terjadi kesalahan
+			return helper.ResponseBasic(c, 500, "Invalid query database")
 		}
 	}
+
+	tx.Commit() // Melakukan commit transaksi jika tidak ada kesalahan
 
 	return helper.ResponseBasic(c, 200, "Success create product data")
 }
@@ -134,25 +142,12 @@ func UpdateProductByCode(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 404, "Product not found", err)
 	}
 
-	if json.Pnm != "" {
-		product.Pnm = json.Pnm
-	}
-	if json.Qty != 0 {
-		product.Qty = json.Qty
-	}
-	if json.Price != 0 {
-		product.Price = json.Price
-	}
-	if json.Catnm != "" {
-		product.Catnm = json.Catnm
-	}
-	if json.Catcd != "" {
-		product.Catcd = json.Catcd
+	err = db.Model(&model.Product{}).Where("pcd =?", param).Updates(json).Error
+	if err != nil {
+		return helper.ResponsError(c, 500, "Invalid query databsae", err)
 	}
 
-	db.Save(&product)
-
-	return helper.ResponsSuccess(c, 200, "Success update product data", Product{}, 1, 10, 1)
+	return helper.ResponsSuccess(c, 200, "Success update product data", json, 1, 10, 1)
 }
 
 func DeleteProduct(c *fiber.Ctx) error {
