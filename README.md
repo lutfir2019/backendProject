@@ -13,7 +13,7 @@ git clone https://github.com/lutfir2019/backendProject
 2. Install Dependencies
 
 ```bash
-cd go-fiber-boilerplate
+cd backendProject
 go mod tidy
 ```
 
