@@ -16,7 +16,7 @@ import (
 func CreateProduct(c *fiber.Ctx) error {
 	json := new(structur.CreateProductRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponseBasic(c, 400, "Invalid JSON")
+		return helper.ResponseBasic(c, 400, InvalidJson)
 	}
 
 	if err := middleware.DenyForStaff(c); err != nil {
@@ -84,7 +84,7 @@ func CreateProduct(c *fiber.Ctx) error {
 func GetProducts(c *fiber.Ctx) error {
 	json := new(structur.SizeGetDataRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	// Set default value if not set in the request page
@@ -112,7 +112,7 @@ func GetProductByCode(c *fiber.Ctx) error {
 	query := Product{Pcd: param}
 	err := db.First(&product, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 404, "Product not found", err)
+		return helper.ResponsError(c, 404, NotFoundProduct, err)
 	}
 
 	return helper.ResponsSuccess(c, 200, "Success get product by code", product, 1, 10, 1)
@@ -127,7 +127,7 @@ func UpdateProductByCode(c *fiber.Ctx) error {
 
 	json := new(structur.SliceProductRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	user := c.Locals("user")
@@ -139,7 +139,7 @@ func UpdateProductByCode(c *fiber.Ctx) error {
 	query := Product{Pcd: param}
 	err := db.First(&product, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 404, "Product not found", err)
+		return helper.ResponsError(c, 404, NotFoundProduct, err)
 	}
 
 	err = db.Model(&model.Product{}).Where("pcd =?", param).Updates(json).Error
@@ -163,7 +163,7 @@ func DeleteProduct(c *fiber.Ctx) error {
 
 	err := db.First(&found, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 404, "Product not found", err)
+		return helper.ResponsError(c, 404, NotFoundProduct, err)
 	}
 
 	db.Delete(&found)

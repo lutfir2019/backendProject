@@ -17,7 +17,7 @@ import (
 func CreateUser(c *fiber.Ctx) error {
 	json := new(structur.SliceUserRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	localUser := c.Locals("user").(map[string]interface{})
@@ -68,7 +68,7 @@ func CreateUser(c *fiber.Ctx) error {
 func GetUsers(c *fiber.Ctx) error {
 	json := new(structur.SizeGetDataRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	localUser := c.Locals("user").(map[string]interface{})
@@ -125,7 +125,7 @@ func GetUserByUnm(c *fiber.Ctx) error {
 	query := User{Unm: param}
 	err := db.First(&user, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 200, "User not found", err)
+		return helper.ResponsError(c, 200, NotFoundUser, err)
 	}
 
 	return helper.ResponsSuccess(c, 200, "Succes get data user by username", user, 1, 10, 1)
@@ -136,7 +136,7 @@ func UpdateUserByUnm(c *fiber.Ctx) error {
 
 	json := new(structur.SliceUserRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	db := database.DB
@@ -144,7 +144,7 @@ func UpdateUserByUnm(c *fiber.Ctx) error {
 	query := User{Unm: param}
 	err := db.First(&user, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 404, "User not found", err)
+		return helper.ResponsError(c, 404, NotFoundUser, err)
 	}
 
 	// cek apakah ada field yang di update
@@ -192,7 +192,7 @@ func DeleteByUnm(c *fiber.Ctx) error {
 	query := User{Unm: param}
 	err := db.First(&user, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 404, "User not found", err)
+		return helper.ResponsError(c, 404, NotFoundUser, err)
 	}
 
 	db.Model(&user).Association("Sessions").Delete()
@@ -206,7 +206,7 @@ func DeleteByUnm(c *fiber.Ctx) error {
 func ChangePassword(c *fiber.Ctx) error {
 	json := new(structur.ChangePasswordRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	db := database.DB
@@ -214,7 +214,7 @@ func ChangePassword(c *fiber.Ctx) error {
 	query := User{Unm: json.Unm}
 	err := db.First(&user, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 404, "User not found", err)
+		return helper.ResponsError(c, 404, NotFoundUser, err)
 	}
 
 	if !helper.ComparePasswords(user.Pass, []byte(json.Pass)) {

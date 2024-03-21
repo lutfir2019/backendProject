@@ -15,7 +15,7 @@ import (
 func CreateShop(c *fiber.Ctx) error {
 	json := new(structur.SliceShopRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	newShop := Shop{
@@ -45,7 +45,7 @@ func CreateShop(c *fiber.Ctx) error {
 func GetShops(c *fiber.Ctx) error {
 	json := new(structur.SizeGetDataRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	// Set default value if not set in the request page
@@ -79,7 +79,7 @@ func GetShopByCode(c *fiber.Ctx) error {
 
 	json := new(structur.SizeGetDataRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	if json.Page < 1 {
@@ -95,7 +95,7 @@ func GetShopByCode(c *fiber.Ctx) error {
 	query := Shop{Spcd: param}
 	err := db.First(&shop, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 404, "Shop not found", err)
+		return helper.ResponsError(c, 404, NotFoundShop, err)
 	}
 
 	db.Model(&model.Shop{}).Where(&query).Count(&TotalItems)
@@ -107,7 +107,7 @@ func UpdateShop(c *fiber.Ctx) error {
 	param := c.Params("spcd")
 	json := new(structur.SliceShopRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	db := database.DB
@@ -115,7 +115,7 @@ func UpdateShop(c *fiber.Ctx) error {
 	query := Shop{Spcd: param}
 	err := db.First(&found, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 404, "Shop not found", err)
+		return helper.ResponsError(c, 404, NotFoundShop, err)
 	}
 
 	if json.Spnm != "" {
@@ -138,7 +138,7 @@ func DeleteShop(c *fiber.Ctx) error {
 
 	err := db.First(&found, &query).Error
 	if err == gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 404, "Shop not found", err)
+		return helper.ResponsError(c, 404, NotFoundShop, err)
 	}
 
 	db.Delete(&found)

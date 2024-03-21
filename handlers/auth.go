@@ -24,10 +24,15 @@ var (
 	TotalItems int64
 )
 
+const InvalidJson = "Invalid JSON"
+const NotFoundProduct = "Product not found"
+const NotFoundUser = "User not found"
+const NotFoundShop = "Shop not found"
+
 func Login(c *fiber.Ctx) error {
 	json := new(structur.LoginRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	db := database.DB
@@ -69,7 +74,7 @@ func Login(c *fiber.Ctx) error {
 func Logout(c *fiber.Ctx) error {
 	json := new(Session)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponsError(c, 400, "Invalid JSON", err)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	db := database.DB
