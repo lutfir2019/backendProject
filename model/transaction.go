@@ -8,9 +8,10 @@ import (
 
 type Transaction struct {
 	ID              uint       `gorm:"primaryKey; autoIncrement" json:"-"`
-	Price           float64    `json:"price"`
-	Quantity        uint       `json:"qty"`
-	Total           float64    `json:"-"`
-	ReferProduct    guuid.UUID `json:"-"`
+	Price           int64      `json:"-"`
+	Quantity        int64      `json:"-"`
+	Total           int64      `json:"-"`
+	ProductRefer    guuid.UUID `json:"-"`
+	ShopRefer       guuid.UUID `json:"-"`
 	TransactionDate time.Time  `gorm:"autoCreateTime" json:"-"`
 }

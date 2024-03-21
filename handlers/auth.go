@@ -18,6 +18,7 @@ type User model.User
 type Session model.Session
 type Product model.Product
 type Shop model.Shop
+type Transaction model.Transaction
 
 var (
 	SecretKey  = []byte("IUAacnfkjdxMJXO;ALSKZXCSOIGAJFMDSKAMsijkd[0ANUG0[")

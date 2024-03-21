@@ -111,8 +111,7 @@ func GetUsers(c *fiber.Ctx) error {
 	}
 
 	// Eksekusi query dan simpan hasilnya di dalam Users
-	query.Count(&TotalItems)
-	query.Offset(offset).Limit(json.PageSize).Find(&Users)
+	query.Count(&TotalItems).Offset(offset).Limit(json.PageSize).Find(&Users)
 
 	return helper.ResponsSuccess(c, 200, "Succes get data user", Users, TotalItems, json.PageSize, json.Page)
 }

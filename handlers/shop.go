@@ -67,11 +67,9 @@ func GetShops(c *fiber.Ctx) error {
 		query = query.Where("LOWER(spnm) LIKE ?", "%"+strings.ToLower(json.Spnm)+"%")
 	}
 
-	// Eksekusi query dan simpan hasilnya di dalam Users
-	query.Count(&TotalItems)
-	query.Offset(offset).Limit(json.PageSize).Find(&Shops)
+	query.Count(&TotalItems).Offset(offset).Limit(json.PageSize).Find(&Shops)
 
-	return helper.ResponsSuccess(c, 200, "Succes get data user", Shops, TotalItems, json.PageSize, json.Page)
+	return helper.ResponsSuccess(c, 200, "Success get data shop", Shops, TotalItems, json.PageSize, json.Page)
 }
 
 func GetShopByCode(c *fiber.Ctx) error {

@@ -45,6 +45,12 @@ func Initalize(router *fiber.App) {
 	shops.Put("/put-shop/:spcd", handlers.UpdateShop)
 	shops.Delete("/delete-shop/:spcd", handlers.DeleteShop)
 
+	transaction := router.Group("/api/transactions", middleware.Authenticated)
+	transaction.Post("/post-transaction", handlers.CreateTransaction)
+
+	dashboard := router.Group("/api/dashboards", middleware.Authenticated)
+	dashboard.Post("/", handlers.GetTransactionByPeriod)
+
 	router.Use(func(c *fiber.Ctx) error {
 		return helper.ResponseBasic(c, 404, "404: Not Found")
 	})

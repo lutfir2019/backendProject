@@ -62,3 +62,15 @@ type LoginRequest struct {
 	Unm  string `json:"unm"`
 	Pass string `json:"pass"`
 }
+
+type SliceTransactionRequest struct {
+	Price       int64  `json:"price"`
+	Total       int64  `json:"total"`
+	Quantity    int64  `json:"qty"`
+	ProductCode string `json:"pcd"`
+	ShopCode    string `json:"spcd"`
+}
+
+type CreateTransactionRequest struct {
+	Data []SliceTransactionRequest `json:"data"`
+}

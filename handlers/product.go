@@ -99,8 +99,7 @@ func GetProducts(c *fiber.Ctx) error {
 	db := database.DB
 	Products := []Product{}
 
-	db.Model(&model.Product{}).Count(&TotalItems)
-	db.Model(&model.Product{}).Order("ID DESC").Offset(offset).Limit(json.PageSize).Find(&Products)
+	db.Model(&model.Product{}).Where("qty > ?", 0).Count(&TotalItems).Order("ID DESC").Offset(offset).Limit(json.PageSize).Find(&Products)
 
 	return helper.ResponsSuccess(c, 200, "Success get product data", Products, TotalItems, json.PageSize, json.Page)
 }
