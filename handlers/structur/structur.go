@@ -67,6 +67,8 @@ type SliceTransactionRequest struct {
 	Price       int64  `json:"price"`
 	Total       int64  `json:"total"`
 	Quantity    int64  `json:"qty"`
+	Catnm       string `json:"catnm"`
+	Catcd       string `json:"catcd"`
 	ProductCode string `json:"pcd"`
 	ShopCode    string `json:"spcd"`
 }
