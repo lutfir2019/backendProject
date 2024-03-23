@@ -42,8 +42,6 @@ func CreateTransaction(c *fiber.Ctx) error {
 			Total:        item.Total,
 			Price:        item.Price,
 			Quantity:     item.Quantity,
-			Catnm:        item.Catnm,
-			Catcd:        item.Catcd,
 			ProductRefer: product.PID,
 			ShopRefer:    shop.SID,
 		}

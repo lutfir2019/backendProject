@@ -80,7 +80,7 @@ func GetUsers(c *fiber.Ctx) error {
 		return helper.ResponseBasic(c, 404, "Invalid Shop code")
 	}
 	role, ok := localUser["role"].(string)
-	if !ok || spcd == "" {
+	if !ok || role == "" {
 		return helper.ResponseBasic(c, 404, "Invalid Role code")
 	}
 
@@ -96,15 +96,8 @@ func GetUsers(c *fiber.Ctx) error {
 	db := database.DB
 	Users := []User{}
 
-	// Persiapkan query awal tanpa kondisi tambahan
-	query := db.Model(&model.User{}).Order("ID DESC")
+	query := db.Model(&model.User{}).Order("ID DESC").Where("LOWER(nam) LIKE ? AND LOWER(spcd) LIKE ?", "%"+strings.ToLower(json.Nam)+"%", "%"+strings.ToLower(json.Spcd)+"%")
 
-	if json.Spcd != "" {
-		query = query.Where(&model.User{Spcd: json.Spcd})
-	}
-	if json.Nam != "" {
-		query = query.Where("LOWER(nam) LIKE ?", "%"+strings.ToLower(json.Nam)+"%")
-	}
 	// Jika role bukan "ROLE-1", tambahkan kondisi Spcd
 	if role != "ROLE-1" {
 		query = query.Where(&model.User{Spcd: spcd})

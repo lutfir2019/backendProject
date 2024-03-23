@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	guuid "github.com/google/uuid"
@@ -16,7 +17,8 @@ import (
 func CreateProduct(c *fiber.Ctx) error {
 	json := new(structur.CreateProductRequest)
 	if err := c.BodyParser(json); err != nil {
-		return helper.ResponseBasic(c, 400, InvalidJson)
+		fmt.Println(json)
+		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
 	if err := middleware.DenyForStaff(c); err != nil {
@@ -35,7 +37,7 @@ func CreateProduct(c *fiber.Ctx) error {
 		err := tx.First(&found, &query).Error
 		if err != gorm.ErrRecordNotFound {
 			tx.Rollback() // Mengembalikan transaksi karena terjadi kesalahan
-			return helper.ResponseBasic(c, 400, fmt.Sprintf("The product with Code %s is already registered.", item.Pcd))
+			return helper.ResponsError(c, 400, fmt.Sprintf("The product with Code %s is already registered.", item.Pcd), err)
 		}
 
 		// Check if the product code already exists in the current batch
@@ -52,7 +54,7 @@ func CreateProduct(c *fiber.Ctx) error {
 		err = tx.First(&shop, &queryShop).Error
 		if err != nil {
 			tx.Rollback() // Mengembalikan transaksi karena terjadi kesalahan
-			return helper.ResponseBasic(c, 400, fmt.Sprintf("Invalid code from %s.", item.Spnm))
+			return helper.ResponsError(c, 400, fmt.Sprintf("Invalid code from %s.", item.Spnm), err)
 		}
 
 		newProduct := Product{
@@ -65,6 +67,7 @@ func CreateProduct(c *fiber.Ctx) error {
 			Catnm:     item.Catnm,
 			Spcd:      item.Spcd,
 			Spnm:      item.Spnm,
+			Crby:      item.Crby,
 			ShopRefer: shop.SID,
 		}
 
@@ -72,7 +75,7 @@ func CreateProduct(c *fiber.Ctx) error {
 		err = tx.Create(&newProduct).Error
 		if err != nil {
 			tx.Rollback() // Mengembalikan transaksi karena terjadi kesalahan
-			return helper.ResponseBasic(c, 500, "Invalid query database")
+			return helper.ResponsError(c, 500, "Invalid query database", err)
 		}
 	}
 
@@ -99,7 +102,7 @@ func GetProducts(c *fiber.Ctx) error {
 	db := database.DB
 	Products := []Product{}
 
-	db.Model(&model.Product{}).Where("qty > ?", 0).Count(&TotalItems).Order("ID DESC").Offset(offset).Limit(json.PageSize).Find(&Products)
+	db.Model(&model.Product{}).Order("ID DESC").Where("qty > ?", 0).Where("LOWER(pnm) LIKE ? AND LOWER(catcd) LIKE ?", "%"+strings.ToLower(json.Pnm)+"%", "%"+strings.ToLower(json.Catcd)+"%").Count(&TotalItems).Offset(offset).Limit(json.PageSize).Find(&Products)
 
 	return helper.ResponsSuccess(c, 200, "Success get product data", Products, TotalItems, json.PageSize, json.Page)
 }

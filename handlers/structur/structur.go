@@ -29,6 +29,7 @@ type SliceProductRequest struct {
 	Catnm string `json:"catnm"`
 	Spcd  string `json:"spcd"`
 	Spnm  string `json:"spnm"`
+	Crby  string `json:"crby"`
 }
 
 type SizeGetDataRequest struct {
@@ -36,6 +37,10 @@ type SizeGetDataRequest struct {
 	Spcd string `json:"spcd"`
 	Spnm string `json:"spnm"`
 	Unm  string `json:"unm"`
+
+	// filter
+	Pnm   string `json:"pnm"`
+	Catcd string `json:"catcd"`
 
 	Page     int `json:"page"`
 	PageSize int `json:"page_size"`
@@ -67,8 +72,6 @@ type SliceTransactionRequest struct {
 	Price       int64  `json:"price"`
 	Total       int64  `json:"total"`
 	Quantity    int64  `json:"qty"`
-	Catnm       string `json:"catnm"`
-	Catcd       string `json:"catcd"`
 	ProductCode string `json:"pcd"`
 	ShopCode    string `json:"spcd"`
 }
