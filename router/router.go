@@ -20,6 +20,7 @@ func Initalize(router *fiber.App) {
 	auth := router.Group("/api/auth")
 	auth.Post("/login", handlers.Login)
 	auth.Post("/logout", handlers.Logout)
+	auth.Post("/admin/post-user", handlers.CreateUser)
 
 	// users := router.Group("/api/users")
 	users := router.Group("/api/users", middleware.Authenticated)

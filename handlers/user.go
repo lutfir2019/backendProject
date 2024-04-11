@@ -20,11 +20,6 @@ func CreateUser(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
-	localUser := c.Locals("user").(map[string]interface{})
-	if localUser == nil || localUser["role"].(string) == "ROLE-3" {
-		return helper.ResponseBasic(c, 403, "Forbiden")
-	}
-
 	// cek apakah toko tersedia
 	db := database.DB
 	shop := Shop{}
