@@ -18,6 +18,7 @@ type SliceUserRequest struct {
 type SliceShopRequest struct {
 	Spnm string `json:"spnm"`
 	Almt string `json:"almt"`
+	Spcd string `json:"spcd"`
 }
 
 type SliceProductRequest struct {
@@ -33,21 +34,27 @@ type SliceProductRequest struct {
 }
 
 type SizeGetDataRequest struct {
-	Nam  string `json:"nam"`
+	// user
+	Nam string `json:"nam"`
+	Unm string `json:"unm"`
+
+	// shop
 	Spcd string `json:"spcd"`
 	Spnm string `json:"spnm"`
-	Unm  string `json:"unm"`
 
-	// filter
+	// product
 	Pnm   string `json:"pnm"`
+	Pcd   string `json:"pcd"`
 	Catcd string `json:"catcd"`
 
+	// pages
 	Page     int `json:"page"`
 	PageSize int `json:"page_size"`
 }
 
 type ChangePasswordRequest struct {
 	Unm     string `json:"unm"`
+	Spcd    string `json:"spcd"`
 	Pass    string `json:"pass"`
 	NewPass string `json:"newPass"`
 }

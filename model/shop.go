@@ -9,8 +9,8 @@ import (
 type Shop struct {
 	ID          int64         `gorm:"autoIncrement" json:"-"`
 	SID         guuid.UUID    `gorm:"primaryKey; unique" json:"-"`
-	Spnm        string        `gorm:"unique" json:"spnm"`
-	Spcd        string        `gorm:"unique" json:"spcd"`
+	Spnm        string        `json:"spnm"`
+	Spcd        string        `json:"spcd"`
 	Almt        string        `json:"almt"`
 	Product     []Product     `gorm:"foreignKey:ShopRefer;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`
 	User        []User        `gorm:"foreignKey:ShopRefer;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`

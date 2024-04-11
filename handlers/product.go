@@ -33,7 +33,7 @@ func CreateProduct(c *fiber.Ctx) error {
 	for _, item := range json.Data {
 		// Check if the product already exists
 		found := Product{}
-		query := Product{Pcd: item.Pcd}
+		query := Product{Pcd: item.Pcd, Spcd: item.Spcd}
 		err := tx.First(&found, &query).Error
 		if err != gorm.ErrRecordNotFound {
 			tx.Rollback() // Mengembalikan transaksi karena terjadi kesalahan
@@ -90,6 +90,19 @@ func GetProducts(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
+	localUser := c.Locals("user").(map[string]interface{})
+	if localUser == nil {
+		return helper.ResponseBasic(c, 400, "Invalid token")
+	}
+	spcd, ok := localUser["shopcode"].(string)
+	if !ok || spcd == "" {
+		return helper.ResponseBasic(c, 404, "Invalid Shop code")
+	}
+	role, ok := localUser["role"].(string)
+	if !ok || role == "" {
+		return helper.ResponseBasic(c, 404, "Invalid Role code")
+	}
+
 	// Set default value if not set in the request page
 	if json.Page < 1 {
 		json.Page = 1
@@ -102,16 +115,25 @@ func GetProducts(c *fiber.Ctx) error {
 	db := database.DB
 	Products := []Product{}
 
-	db.Model(&model.Product{}).Order("ID DESC").Where("qty > ?", 0).Where("LOWER(pnm) LIKE ? AND LOWER(catcd) LIKE ?", "%"+strings.ToLower(json.Pnm)+"%", "%"+strings.ToLower(json.Catcd)+"%").Count(&TotalItems).Offset(offset).Limit(json.PageSize).Find(&Products)
+	query := db.Model(&model.Product{}).Order("ID DESC").Where("qty > ?", 0).Where("LOWER(pnm) LIKE ? AND LOWER(catcd) LIKE ? AND LOWER(spcd) LIKE ?", "%"+strings.ToLower(json.Pnm)+"%", "%"+strings.ToLower(json.Catcd)+"%", "%"+strings.ToLower(json.Spcd)+"%")
+
+	if role != "ROLE-1" {
+		query = query.Where("spcd =?", spcd)
+	}
+
+	query.Count(&TotalItems).Offset(offset).Limit(json.PageSize).Find(&Products)
 
 	return helper.ResponsSuccess(c, 200, "Success get product data", Products, TotalItems, json.PageSize, json.Page)
 }
 func GetProductByCode(c *fiber.Ctx) error {
-	param := c.Params("pcd")
+	json := new(structur.SizeGetDataRequest)
+	if err := c.BodyParser(json); err != nil {
+		return helper.ResponsError(c, 400, InvalidJson, err)
+	}
 
 	db := database.DB
 	product := Product{}
-	query := Product{Pcd: param}
+	query := Product{Pcd: json.Pcd, Spcd: json.Spcd}
 	err := db.First(&product, &query).Error
 	if err == gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 404, NotFoundProduct, err)
@@ -121,8 +143,6 @@ func GetProductByCode(c *fiber.Ctx) error {
 }
 
 func UpdateProductByCode(c *fiber.Ctx) error {
-	param := c.Params("pcd")
-
 	if err := middleware.DenyForStaff(c); err != nil {
 		return err // Mengembalikan respons error dari middleware
 	}
@@ -132,19 +152,15 @@ func UpdateProductByCode(c *fiber.Ctx) error {
 		return helper.ResponsError(c, 400, InvalidJson, err)
 	}
 
-	user := c.Locals("user")
-
-	fmt.Println(user)
-
 	db := database.DB
 	product := Product{}
-	query := Product{Pcd: param}
+	query := Product{Pcd: json.Pcd, Spcd: json.Spcd}
 	err := db.First(&product, &query).Error
 	if err == gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 404, NotFoundProduct, err)
 	}
 
-	err = db.Model(&model.Product{}).Where("pcd =?", param).Updates(json).Error
+	err = db.Model(&model.Product{}).Where("pcd =? AND spcd =?", json.Pcd, json.Spcd).Updates(json).Error
 	if err != nil {
 		return helper.ResponsError(c, 500, "Invalid query databsae", err)
 	}
@@ -153,7 +169,10 @@ func UpdateProductByCode(c *fiber.Ctx) error {
 }
 
 func DeleteProduct(c *fiber.Ctx) error {
-	param := c.Params("pcd")
+	json := new(structur.SliceProductRequest)
+	if err := c.BodyParser(json); err != nil {
+		return helper.ResponsError(c, 400, InvalidJson, err)
+	}
 
 	if err := middleware.DenyForStaff(c); err != nil {
 		return err // Mengembalikan respons error dari middleware
@@ -161,7 +180,7 @@ func DeleteProduct(c *fiber.Ctx) error {
 
 	db := database.DB
 	found := Product{}
-	query := Product{Pcd: param}
+	query := Product{Pcd: json.Pcd, Spcd: json.Spcd}
 
 	err := db.First(&found, &query).Error
 	if err == gorm.ErrRecordNotFound {
@@ -170,5 +189,5 @@ func DeleteProduct(c *fiber.Ctx) error {
 
 	db.Delete(&found)
 
-	return helper.ResponseBasic(c, 200, fmt.Sprintf("Success delete product with code %s", param))
+	return helper.ResponseBasic(c, 200, fmt.Sprintf("Success delete product with code %s", json.Spcd))
 }

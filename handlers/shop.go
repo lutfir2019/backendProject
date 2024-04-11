@@ -102,7 +102,6 @@ func GetShopByCode(c *fiber.Ctx) error {
 }
 
 func UpdateShop(c *fiber.Ctx) error {
-	param := c.Params("spcd")
 	json := new(structur.SliceShopRequest)
 	if err := c.BodyParser(json); err != nil {
 		return helper.ResponsError(c, 400, InvalidJson, err)
@@ -110,20 +109,17 @@ func UpdateShop(c *fiber.Ctx) error {
 
 	db := database.DB
 	found := Shop{}
-	query := Shop{Spcd: param}
+	query := Shop{Spcd: json.Spcd}
 	err := db.First(&found, &query).Error
 	if err == gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 404, NotFoundShop, err)
 	}
 
-	if json.Spnm != "" {
-		found.Spnm = json.Spnm
+	err = db.Model(&model.Shop{}).Where("spcd =?", json.Spcd).Updates(json).Error
+	if err != nil {
+		return helper.ResponsError(c, 500, "Invalid query databsae", err)
 	}
-	if json.Almt != "" {
-		found.Almt = json.Almt
-	}
-
-	db.Save(&found)
+	
 	return helper.ResponseBasic(c, 200, "Sucsess update shop data")
 }
 

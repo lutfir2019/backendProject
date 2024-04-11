@@ -26,15 +26,15 @@ func Initalize(router *fiber.App) {
 	users.Post("/post-user", handlers.CreateUser)
 	users.Post("/get-user", handlers.GetUsers)
 	users.Post("/get-user/:unm", handlers.GetUserByUnm)
-	users.Put("/put-user/:unm", handlers.UpdateUserByUnm)
-	users.Delete("/delete-user/:unm", handlers.DeleteByUnm)
+	users.Put("/put-user", handlers.UpdateUserByUnm)
+	users.Delete("/delete-user", handlers.DeleteByUnm)
 	users.Put("/edit-user/changepassword", handlers.ChangePassword)
 
 	products := router.Group("/api/products", middleware.Authenticated)
 	products.Post("/post-product", handlers.CreateProduct)
 	products.Post("/get-product", handlers.GetProducts)
 	products.Post("/get-product/:pcd", handlers.GetProductByCode)
-	products.Put("/put-product/:pcd", handlers.UpdateProductByCode)
+	products.Put("/put-product", handlers.UpdateProductByCode)
 	products.Delete("/delete-product/:pcd", handlers.DeleteProduct)
 
 	// shops := router.Group("/api/shops")
@@ -42,7 +42,7 @@ func Initalize(router *fiber.App) {
 	shops.Post("/post-shop", handlers.CreateShop)
 	shops.Post("/get-shop", handlers.GetShops)
 	shops.Post("/get-shop/:spcd", handlers.GetShopByCode)
-	shops.Put("/put-shop/:spcd", handlers.UpdateShop)
+	shops.Put("/put-shop", handlers.UpdateShop)
 	shops.Delete("/delete-shop/:spcd", handlers.DeleteShop)
 
 	transaction := router.Group("/api/transactions", middleware.Authenticated)

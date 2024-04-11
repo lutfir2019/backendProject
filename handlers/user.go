@@ -51,7 +51,7 @@ func CreateUser(c *fiber.Ctx) error {
 	}
 
 	user := User{}
-	query := User{Unm: new.Unm}
+	query := User{Unm: new.Unm, Spcd: new.Spcd}
 	err = db.First(&user, &query).Error
 	if err != gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 400, "Username already exists", err)
@@ -98,7 +98,6 @@ func GetUsers(c *fiber.Ctx) error {
 
 	query := db.Model(&model.User{}).Order("ID DESC").Where("LOWER(nam) LIKE ? AND LOWER(spcd) LIKE ?", "%"+strings.ToLower(json.Nam)+"%", "%"+strings.ToLower(json.Spcd)+"%")
 
-	// Jika role bukan "ROLE-1", tambahkan kondisi Spcd
 	if role != "ROLE-1" {
 		query = query.Where(&model.User{Spcd: spcd})
 	}
@@ -112,9 +111,22 @@ func GetUsers(c *fiber.Ctx) error {
 func GetUserByUnm(c *fiber.Ctx) error {
 	param := c.Params("unm")
 
+	localUser := c.Locals("user").(map[string]interface{})
+	spcd, ok := localUser["shopcode"].(string)
+	if !ok || spcd == "" {
+		return helper.ResponseBasic(c, 404, "Invalid Shop code")
+	}
+	role, ok := localUser["role"].(string)
+	if !ok || role == "" {
+		return helper.ResponseBasic(c, 404, "Invalid Role code")
+	}
+
 	db := database.DB
 	user := User{}
 	query := User{Unm: param}
+	if role != "ROLE-1" {
+		query = User{Unm: param, Spcd: spcd}
+	}
 	err := db.First(&user, &query).Error
 	if err == gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 200, NotFoundUser, err)
@@ -124,8 +136,6 @@ func GetUserByUnm(c *fiber.Ctx) error {
 }
 
 func UpdateUserByUnm(c *fiber.Ctx) error {
-	param := c.Params("unm")
-
 	json := new(structur.SliceUserRequest)
 	if err := c.BodyParser(json); err != nil {
 		return helper.ResponsError(c, 400, InvalidJson, err)
@@ -133,47 +143,24 @@ func UpdateUserByUnm(c *fiber.Ctx) error {
 
 	db := database.DB
 	user := User{}
-	query := User{Unm: param}
+	query := User{Unm: json.Unm, Spcd: json.Spcd}
 	err := db.First(&user, &query).Error
 	if err == gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 404, NotFoundUser, err)
 	}
 
-	// cek apakah ada field yang di update
-	if json.Nam != "" {
-		user.Nam = json.Nam
+	err = db.Model(&model.User{}).Where("unm =? AND spcd =?", json.Unm, json.Spcd).Updates(json).Error
+	if err != nil {
+		return helper.ResponsError(c, 500, "Invalid query databsae", err)
 	}
-	if json.Almt != "" {
-		user.Almt = json.Almt
-	}
-	if json.Gdr != "" {
-		user.Gdr = json.Gdr
-	}
-	if json.Rlcd != "" {
-		user.Rlcd = json.Rlcd
-	}
-	if json.Rlnm != "" {
-		user.Rlnm = json.Rlnm
-	}
-	if json.Pn != "" {
-		user.Pn = json.Pn
-	}
-	if json.Pn != "" {
-		user.Pn = json.Pn
-	}
-	if json.Spcd != "" {
-		user.Spcd = json.Spcd
-	}
-	if json.Spnm != "" {
-		user.Spnm = json.Spnm
-	}
-
-	db.Save(user)
 	return helper.ResponsSuccess(c, 200, "Succes update data user", User{}, 1, 10, 1)
 }
 
 func DeleteByUnm(c *fiber.Ctx) error {
-	param := c.Params("unm")
+	json := new(structur.SliceUserRequest)
+	if err := c.BodyParser(json); err != nil {
+		return helper.ResponsError(c, 400, InvalidJson, err)
+	}
 
 	if err := middleware.DenyForStaff(c); err != nil {
 		return err // Mengembalikan respons error dari middleware
@@ -181,7 +168,7 @@ func DeleteByUnm(c *fiber.Ctx) error {
 
 	db := database.DB
 	user := User{}
-	query := User{Unm: param}
+	query := User{Unm: json.Unm, Spcd: json.Spcd}
 	err := db.First(&user, &query).Error
 	if err == gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 404, NotFoundUser, err)
@@ -203,7 +190,7 @@ func ChangePassword(c *fiber.Ctx) error {
 
 	db := database.DB
 	user := User{}
-	query := User{Unm: json.Unm}
+	query := User{Unm: json.Unm, Spcd: json.Spcd}
 	err := db.First(&user, &query).Error
 	if err == gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 404, NotFoundUser, err)

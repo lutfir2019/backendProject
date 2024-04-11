@@ -10,7 +10,7 @@ type Product struct {
 	ID          int64         `gorm:"autoIncrement" json:"-"`
 	PID         guuid.UUID    `gorm:"primaryKey; unique" json:"-"`
 	Pnm         string        `json:"pnm"`
-	Pcd         string        `gorm:"unique" json:"pcd"`
+	Pcd         string        `json:"pcd"`
 	Qty         int64         `json:"qty"`
 	Price       int64         `json:"price"`
 	Catcd       string        `json:"catcd"`
