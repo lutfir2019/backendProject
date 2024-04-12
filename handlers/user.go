@@ -46,10 +46,10 @@ func CreateUser(c *fiber.Ctx) error {
 	}
 
 	user := User{}
-	query := User{Unm: new.Unm, Spcd: new.Spcd}
+	query := User{Unm: new.Unm}
 	err = db.First(&user, &query).Error
 	if err != gorm.ErrRecordNotFound {
-		return helper.ResponsError(c, 400, "Username already exists", err)
+		return helper.ResponsError(c, 400, fmt.Sprintf("Username `%s` is already exists", new.Unm), err)
 	}
 
 	err = db.Create(&new).Error
@@ -138,13 +138,13 @@ func UpdateUserByUnm(c *fiber.Ctx) error {
 
 	db := database.DB
 	user := User{}
-	query := User{Unm: json.Unm, Spcd: json.Spcd}
+	query := User{Unm: json.Unm}
 	err := db.First(&user, &query).Error
 	if err == gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 404, NotFoundUser, err)
 	}
 
-	err = db.Model(&model.User{}).Where("unm =? AND spcd =?", json.Unm, json.Spcd).Updates(json).Error
+	err = db.Model(&model.User{}).Where("unm =?", json.Unm).Updates(json).Error
 	if err != nil {
 		return helper.ResponsError(c, 500, "Invalid query databsae", err)
 	}
@@ -163,7 +163,7 @@ func DeleteByUnm(c *fiber.Ctx) error {
 
 	db := database.DB
 	user := User{}
-	query := User{Unm: json.Unm, Spcd: json.Spcd}
+	query := User{Unm: json.Unm}
 	err := db.First(&user, &query).Error
 	if err == gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 404, NotFoundUser, err)
@@ -185,7 +185,7 @@ func ChangePassword(c *fiber.Ctx) error {
 
 	db := database.DB
 	user := User{}
-	query := User{Unm: json.Unm, Spcd: json.Spcd}
+	query := User{Unm: json.Unm}
 	err := db.First(&user, &query).Error
 	if err == gorm.ErrRecordNotFound {
 		return helper.ResponsError(c, 404, NotFoundUser, err)
