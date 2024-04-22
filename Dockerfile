@@ -1,19 +1,12 @@
-FROM golang:1.22 AS build
-
-WORKDIR /go/src/fiber
-
-COPY . .
-
-RUN go mod download
-
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o app .
-
-FROM alpine:latest
-
+FROM golang:1.19-alpine AS builder
 WORKDIR /app
-
-COPY --from=build /go/src/fiber/app .
-
-EXPOSE 5000
-
-CMD ["./app", "run", "app.go"]
+COPY . .
+RUN go mod download
+RUN go build -o ./example-golang ./main.go
+ 
+ 
+FROM alpine:latest AS runner
+WORKDIR /app
+COPY --from=builder /app/example-golang .
+EXPOSE 8080
+ENTRYPOINT ["./example-golang"]
